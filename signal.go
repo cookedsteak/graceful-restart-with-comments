@@ -67,19 +67,20 @@ func handleHangup() error {
 
 func socketListener(chn chan<- string, errChn chan<- error) {
 	// 创建 socket 服务端
-	fmt.Println("创建新的 socket listener...")
+	fmt.Println("创建新的socket通道")
 	ln, err := net.Listen("unix", cfg.sockFile)
 	if err != nil {
-		fmt.Println("socketListener error", err.Error())
 		errChn <- err
 		return
 	}
 	defer ln.Close()
 
 	// signal that we created a socket
-	chn <- "socket_opened" // 这时候已经开始 fork 了
+	fmt.Println("通道已经打开，可以 fork 了")
+	chn <- "socket_opened"
 
 	// accept
+	// 阻塞等待子进程连接进来
 	c, err := acceptConn(ln)
 	if err != nil {
 		errChn <- err
@@ -87,7 +88,6 @@ func socketListener(chn chan<- string, errChn chan<- error) {
 	}
 
 	// read from the socket
-	fmt.Println("服务端读取socket")
 	buf := make([]byte, 512)
 	nr, err := c.Read(buf)
 	if err != nil {
@@ -96,15 +96,17 @@ func socketListener(chn chan<- string, errChn chan<- error) {
 	}
 
 	data := buf[0:nr]
-	fmt.Println("获得消息", string(data))
+	fmt.Println("获得消息子进程消息", string(data))
 	switch string(data) {
 	case "get_listener":
-		fmt.Println("get_listener received - sending listener information")
+		fmt.Println("子进程请求 listener 信息，开始传送给他吧~")
 		err := sendListener(c) // 发送文件描述到新的子进程，用来 import Listener
 		if err != nil {
 			errChn <- err
 			return
 		}
+		// 传送完毕
+		fmt.Println("listener 信息传送完毕")
 		chn <- "listener_sent"
 	}
 }
@@ -134,7 +136,6 @@ func acceptConn(l net.Listener) (c net.Conn, err error) {
 
 	return
 }
-
 
 func sendListener(c net.Conn) error {
 	fmt.Printf("发送老的 listener 文件 %+v\n", cfg.ln)

@@ -84,7 +84,7 @@ func shutdown(srv *http.Server) error {
 }
 
 func fork() (*os.Process, error) {
-	// get the file descriptor and pack it up in the metadata
+	// 拿到原监听文件描述符并打包到元数据中
 	lnFile, err := getListenerFile(cfg.ln)
 	fmt.Printf("拿到监听文件 %+v\n，开始创建新进程\n", lnFile.Name())
 	if err != nil {

@@ -27,14 +27,14 @@ func getListener() (net.Listener, error) {
 
 
 func importListener() (net.Listener, error) {
-	// 向已经准备好的 unix socket 建立连接 、这个和 listener一点关系没有
+	// 向已经准备好的 unix socket 建立连接，这个是爸爸进程在之前就建立好的
 	c, err := net.Dial("unix", cfg.sockFile)
 	if err != nil {
 		fmt.Println("no unix socket now")
 		return nil, err
 	}
 	defer c.Close()
-	fmt.Println("start import unix listener...")
+	fmt.Println("准备导入原 listener 文件...")
 	var lnEnv string
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -48,16 +48,15 @@ func importListener() (net.Listener, error) {
 		}
 
 		lnEnv = string(buf[0:n])
-		fmt.Println("import listener:", lnEnv)
 	}(c)
 	// 写入 get_listener
-	fmt.Println("write 'get-listener' to connection")
+	fmt.Println("告诉爸爸我要 'get-listener' 了")
 	_, err = c.Write([]byte("get_listener"))
 	if err != nil {
 		return nil, err
 	}
 
-	wg.Wait()
+	wg.Wait() // 等待爸爸传给我们参数
 
 	if lnEnv == "" {
 		return nil, fmt.Errorf("Listener info not received from socket")
@@ -75,8 +74,9 @@ func importListener() (net.Listener, error) {
 	// the file has already been passed to this process, extract the file
 	// descriptor and name from the metadata to rebuild/find the *os.File for
 	// the listener.
+	// 我们已经拿到了监听文件的信息，我们准备自己创建一份新的文件并使用
 	lnFile := os.NewFile(uintptr(l.FD), l.Filename)
-	fmt.Println("filename is ", l.Filename)
+	fmt.Println("新文件名：", l.Filename)
 	if lnFile == nil {
 		return nil, fmt.Errorf("unable to create listener file: %v", l.Filename)
 	}
