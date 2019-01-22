@@ -26,7 +26,6 @@ https://tomaz.lovrec.eu/posts/graceful-server-restart  中文注解
 运行程序，过程中打开一个新的 console，输入 `kill -1 [进程号]`，你就能看到优雅重启的进程了。
 
 ## 代码思路
-因为 http server 的运行需要一个监听对象，该对象包含了我们需要监听的
 ```
 func main() {
     主函数，初始化配置
